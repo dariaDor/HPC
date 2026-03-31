@@ -87,6 +87,8 @@ int main() {
 
     cout << "GPU time: " << gpuTime << " ms" << endl;
 
+    cout << "Acceleration: " << cpuTime / gpuTime << endl;
+
     cudaFree(d_A); cudaFree(d_B); cudaFree(d_C);
 
     free(A); free(B); 
