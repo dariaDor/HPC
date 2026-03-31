@@ -60,9 +60,9 @@ double recordEvent(clock_t& t0) {
 int main() {
     srand(time(NULL));
 
-    const int sizes[] = {100, 512, 1024, 2000};
+    const int sizes[] = {1, 100, 512, 1024, 2000};
 
-    for (int s = 0; s < 4; ++s) {
+    for (int s = 0; s < 5; ++s) {
         int N = sizes[s];
         cout << "Matrix size: " << N << "x" << N << endl;
 
@@ -96,20 +96,14 @@ int main() {
         bool correct = checkCorrectness(C_cpu, C_gpu, N);
 
         cout << "CPU time: " << cpuTime << " ms" << endl;
-
         cout << "GPU time: " << gpuTime << " ms" << endl;
-
         cout << "Acceleration: " << cpuTime / gpuTime << endl;
-
         cout << "Correctness: " << (correct ? "OK" : "FAIL") << endl;
 
         cudaFree(d_A); cudaFree(d_B); cudaFree(d_C);
 
-        free(A); free(B); 
-        free(C_cpu);
-        free(C_gpu);
+        free(A); free(B); free(C_cpu); free(C_gpu);
 
     }
-
     return 0;
 }
