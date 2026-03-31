@@ -18,6 +18,11 @@ void CPU_mmul(const int* A, const int* B, int* C, int N) {
     }
 }
 
+void fillRandMatrix(int* M, int N, int maxVal = 10) {
+    for (int i = 0; i < N * N; ++i) {
+        M[i] = rand() % maxVal;
+    }
+}
 
 double recordEvent(clock_t& t0) {
     double elapsed = (double)(clock() - t0) / CLOCKS_PER_SEC * 1000.0;
@@ -36,13 +41,8 @@ int main() {
     int* B = (int*)malloc(memSize);
     int* C_cpu = (int*)malloc(memSize);
 
-     for (int i = 0; i < N * N; ++i) {
-        A[i] = rand() % maxVal;
-    }
-
-    for (int i = 0; i < N * N; ++i) {
-        B[i] = rand() % maxVal;
-    }
+    fillRandMatrix(A, N);
+    fillRandMatrix(B, N);
 
     clock_t t0 = clock();
     CPU_mmul(A, B, C_cpu, N);
