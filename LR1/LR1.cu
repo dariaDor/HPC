@@ -19,13 +19,12 @@ void CPU_mmul(const int* A, const int* B, int* C, int N) {
 }
 
 __global__ void GPU_mmul_kernel(const int* A, const int* B, int* C, int N) {
-    int row = blockIdx.y * blockDim.y + threadIdx.y; // индекс строки
-    int col = blockIdx.x * blockDim.x + threadIdx.x; // индекс столбца
-
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
     if (row < N && col < N) {
         int sum = 0;
         for (int k = 0; k < N; ++k) {
-            sum += A[row + k * N] * B[k + col * N]; // column-major
+            sum += A[row + k * N] * B[k + col * N];
         }
         C[row + col * N] = sum;
     }
@@ -37,6 +36,13 @@ void GPU_mmul(const int* d_A, const int* d_B, int* d_C, int N) {
     dim3 blocksPerGrid((N + 15) / 16, (N + 15) / 16);
     GPU_mmul_kernel<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, N);
     cudaDeviceSynchronize();
+}
+
+bool checkCorrectness(const int* C1, const int* C2, int N) {
+    for (int i = 0; i < N * N; ++i) {
+        if (C1[i] != C2[i]) return false;
+    }
+    return true;
 }
 
 void fillRandMatrix(int* M, int N, int maxVal = 10) {
@@ -83,11 +89,15 @@ int main() {
 
     cudaMemcpy(C_gpu, d_C, memSize, cudaMemcpyDeviceToHost);
 
+    bool correct = checkCorrectness(C_cpu, C_gpu, N);
+
     cout << "CPU time: " << cpuTime << " ms" << endl;
 
     cout << "GPU time: " << gpuTime << " ms" << endl;
 
     cout << "Acceleration: " << cpuTime / gpuTime << endl;
+
+    cout << "Correctness: " << (correct ? "OK" : "FAIL") << endl;
 
     cudaFree(d_A); cudaFree(d_B); cudaFree(d_C);
 
