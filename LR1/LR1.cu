@@ -60,49 +60,56 @@ double recordEvent(clock_t& t0) {
 int main() {
     srand(time(NULL));
 
-    int N = 100;
-    cout << "Matrix size: " << N << "x" << N << endl;
+    const int sizes[] = {100, 512, 1024, 2000};
 
-    size_t memSize = sizeof(int) * N * N;
-    int* A = (int*)malloc(memSize);
-    int* B = (int*)malloc(memSize);
-    int* C_cpu = (int*)malloc(memSize);
+    for (int s = 0; s < 4; ++s) {
+        int N = sizes[s];
+        cout << "Matrix size: " << N << "x" << N << endl;
 
-    fillRandMatrix(A, N);
-    fillRandMatrix(B, N);
+        size_t memSize = sizeof(int) * N * N;
+        int* A = (int*)malloc(memSize);
+        int* B = (int*)malloc(memSize);
+        int* C_cpu = (int*)malloc(memSize);
+        int* C_gpu = (int*)malloc(memSize);
 
-    clock_t t0 = clock();
-    CPU_mmul(A, B, C_cpu, N);
-    double cpuTime = recordEvent(t0);
+        fillRandMatrix(A, N);
+        fillRandMatrix(B, N);
 
-    int *d_A, *d_B, *d_C;
-    cudaMalloc(&d_A, memSize);
-    cudaMalloc(&d_B, memSize);
-    cudaMalloc(&d_C, memSize);
+        clock_t t0 = clock();
+        CPU_mmul(A, B, C_cpu, N);
+        double cpuTime = recordEvent(t0);
 
-    cudaMemcpy(d_A, A, memSize, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_B, B, memSize, cudaMemcpyHostToDevice);
+        int *d_A, *d_B, *d_C;
+        cudaMalloc(&d_A, memSize);
+        cudaMalloc(&d_B, memSize);
+        cudaMalloc(&d_C, memSize);
 
-    t0 = clock();
-    GPU_mmul(d_A, d_B, d_C, N);
-    double gpuTime = recordEvent(t0);
+        cudaMemcpy(d_A, A, memSize, cudaMemcpyHostToDevice);
+        cudaMemcpy(d_B, B, memSize, cudaMemcpyHostToDevice);
 
-    cudaMemcpy(C_gpu, d_C, memSize, cudaMemcpyDeviceToHost);
+        t0 = clock();
+        GPU_mmul(d_A, d_B, d_C, N);
+        double gpuTime = recordEvent(t0);
 
-    bool correct = checkCorrectness(C_cpu, C_gpu, N);
+        cudaMemcpy(C_gpu, d_C, memSize, cudaMemcpyDeviceToHost);
 
-    cout << "CPU time: " << cpuTime << " ms" << endl;
+        bool correct = checkCorrectness(C_cpu, C_gpu, N);
 
-    cout << "GPU time: " << gpuTime << " ms" << endl;
+        cout << "CPU time: " << cpuTime << " ms" << endl;
 
-    cout << "Acceleration: " << cpuTime / gpuTime << endl;
+        cout << "GPU time: " << gpuTime << " ms" << endl;
 
-    cout << "Correctness: " << (correct ? "OK" : "FAIL") << endl;
+        cout << "Acceleration: " << cpuTime / gpuTime << endl;
 
-    cudaFree(d_A); cudaFree(d_B); cudaFree(d_C);
+        cout << "Correctness: " << (correct ? "OK" : "FAIL") << endl;
 
-    free(A); free(B); 
-    free(C_cpu);
-    free(C_gpu);
+        cudaFree(d_A); cudaFree(d_B); cudaFree(d_C);
+
+        free(A); free(B); 
+        free(C_cpu);
+        free(C_gpu);
+
+    }
+
     return 0;
 }
