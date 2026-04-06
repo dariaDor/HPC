@@ -86,11 +86,14 @@ int main() {
     srand(time(NULL));
 
     const int vectorSizes[] = {
+        1,
         1000,
         10000,
         100000,
         1000000,
-    };
+        10000000,
+        100000000,
+    }; 
 
     for (int s = 0; s < size(vectorSizes); ++s) {
 
@@ -123,8 +126,12 @@ int main() {
 
         cudaMemcpy(&gpu_result, d_result, sizeof(int), cudaMemcpyDeviceToHost);
 
+        bool correct = (cpu_result == gpu_result);
+
         cout << "CPU time: " << cpuTime << " ms" << endl;
         cout << "GPU time: " << gpuTime << " ms" << endl;
+        cout << "Acceleration: " << cpuTime / gpuTime << endl;
+        cout << "Correctness: " << (correct ? "OK" : "FAIL") << endl;
 
          free(A);
 
