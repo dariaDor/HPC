@@ -49,8 +49,7 @@ __global__ void medianFilterKernel(cudaTextureObject_t texObj, unsigned char* __
     output[row * width + col] = window[12];
 }
 
-float runMedianFilterGPU(const unsigned char* h_input, unsigned char* h_output, int width, int height){
-  float runMedianFilterGPU(const unsigned char* h_input, unsigned char* h_output, int width, int height, int passes){
+float runMedianFilterGPU(const unsigned char* h_input, unsigned char* h_output, int width, int height, int passes){
     size_t bytes = (size_t)width * height;
 
     unsigned char *d_buf1 = nullptr, *d_buf2 = nullptr;
@@ -65,36 +64,38 @@ float runMedianFilterGPU(const unsigned char* h_input, unsigned char* h_output, 
     cudaEventCreate(&t0);
     cudaEventCreate(&t1);
     cudaEventRecord(t0);
-        
-    cudaArray_t cuArray;
-    cudaChannelFormatDesc desc = cudaCreateChannelDesc(8, 0, 0, 0, cudaChannelFormatKindUnsigned);
 
-    cudaMallocArray(&cuArray, &desc, width, height);
-    cudaMemcpy2DToArray(cuArray, 0, 0, d_buf1, width,width, height, cudaMemcpyDeviceToDevice);
+    for (int pass = 0; pass < passes; ++pass) {
+        cudaArray_t cuArray;
+        cudaChannelFormatDesc desc = cudaCreateChannelDesc(8, 0, 0, 0, cudaChannelFormatKindUnsigned);
 
-    cudaResourceDesc resDesc{};
-    resDesc.resType = cudaResourceTypeArray;
-    resDesc.res.array.array = cuArray;
+        cudaMallocArray(&cuArray, &desc, width, height);
+        cudaMemcpy2DToArray(cuArray, 0, 0, d_buf1, width,width, height, cudaMemcpyDeviceToDevice);
 
-    cudaTextureDesc texDesc{};
-    texDesc.addressMode[0] = cudaAddressModeClamp;
-    texDesc.addressMode[1] = cudaAddressModeClamp;
-    texDesc.filterMode = cudaFilterModePoint;
-    texDesc.readMode = cudaReadModeElementType;
-    texDesc.normalizedCoords = 0;
+        cudaResourceDesc resDesc{};
+        resDesc.resType = cudaResourceTypeArray;
+        resDesc.res.array.array = cuArray;
 
-    cudaTextureObject_t texObj = 0;
-    cudaCreateTextureObject(&texObj, &resDesc, &texDesc, nullptr);
+        cudaTextureDesc texDesc{};
+        texDesc.addressMode[0] = cudaAddressModeClamp;
+        texDesc.addressMode[1] = cudaAddressModeClamp;
+        texDesc.filterMode = cudaFilterModePoint;
+        texDesc.readMode = cudaReadModeElementType;
+        texDesc.normalizedCoords = 0;
 
-    medianFilterKernel<<<grid, block>>>(texObj, d_buf2, width, height);
-    cudaDeviceSynchronize();
+        cudaTextureObject_t texObj = 0;
+        cudaCreateTextureObject(&texObj, &resDesc, &texDesc, nullptr);
 
-    cudaDestroyTextureObject(texObj);
-    cudaFreeArray(cuArray);
+        medianFilterKernel<<<grid, block>>>(texObj, d_buf2, width, height);
+        cudaDeviceSynchronize();
 
-    unsigned char* tmp = d_buf1;
-    d_buf1 = d_buf2;
-    d_buf2 = tmp;
+        cudaDestroyTextureObject(texObj);
+        cudaFreeArray(cuArray);
+
+        unsigned char* tmp = d_buf1;
+        d_buf1 = d_buf2;
+        d_buf2 = tmp;
+    }
 
     cudaEventRecord(t1);
     cudaEventSynchronize(t1);
@@ -115,13 +116,14 @@ float runMedianFilterGPU(const unsigned char* h_input, unsigned char* h_output, 
 int main(int argc, char** argv) {
     const char* inputPath  = argv[1];
     const char* outputPath = argv[2];
+    int passes = std::atoi(argv[3]);
 
     int width = 0, height = 0;
     unsigned char* input = loadBMP(inputPath, &width, &height);
 
     unsigned char* output = new unsigned char[width * height];
 
-    float gpuTime = runMedianFilterGPU(input, output, width, height);
+    float gpuTime = runMedianFilterGPU(input, output, width, height, passes);
     std::cout << "GPU time: " << gpuTime << " ms" << std::endl;
 
     saveBMP(outputPath, output, width, height);
