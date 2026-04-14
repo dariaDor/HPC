@@ -25,31 +25,28 @@ bool saveBMP(const char* path, const unsigned char* data, int w, int h) {
     return cv::imwrite(path, img);
 }
 
-__global__ void medianFilterKernel(
-    cudaTextureObject_t texObj,
-    unsigned char* __restrict__ output,
-    int width, int height)
-{
+__global__ void medianFilterKernel(cudaTextureObject_t texObj, unsigned char* __restrict__ output, int width, int height){
+
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     if (col >= width || row >= height) return;
 
-
-    unsigned char win[9];
+    unsigned char window[25];
     int k = 0;
-    for (int dy = -1; dy <= 1; dy++)
-        for (int dx = -1; dx <= 1; dx++)
-            win[k++] = tex2D<unsigned char>(texObj, col + dx, row + dy);
 
+    for (int dy = -2; dy <= 2; ++dy)
+        for (int dx = -2; dx <= 2; ++dx)
+            window[k++] = tex2D<unsigned char>(texObj, col + dx, row + dy);
 
-    for (int i = 0; i < 9; i++)
-        for (int j = i+1; j < 9; j++)
-            if (win[i] > win[j]) {
-                unsigned char t = win[i]; win[i] = win[j]; win[j] = t;
+    for (int i = 0; i < 25; ++i)
+        for (int j = i + 1; j < 25; ++j)
+            if (window[i] > window[j]) {
+                unsigned char t = window[i];
+                window[i] = window[j];
+                window[j] = t;
             }
 
-
-    output[row * width + col] = win[4];
+    output[row * width + col] = window[12];
 }
 
 float runMedianFilterGPU(const unsigned char* h_input, unsigned char* h_output, int width, int height){
