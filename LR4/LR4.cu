@@ -269,7 +269,7 @@ int main(int argc, char** argv) {
     double cpuTime = harrisCPU(input, cpuCorners, width, height, threshold, alpha);
     std::cout << "CPU time: " << cpuTime << " ms" << std::endl;
 
-    std::cout << "CPU == GPU: " << isResultsMatch(gpuCorners, cpuCorners, width, height) << std::endl;
+    std::cout << "CPU == GPU: " << (isResultsMatch(gpuCorners, cpuCorners, width, height) ? "true" : "false") << std::endl;
 
     saveImageWithCross(outputPath, input, cpuCorners, width, height);
 
