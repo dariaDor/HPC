@@ -231,6 +231,26 @@ float harrisGPU(const unsigned char* h_input, std::vector<cv::Point>& corners, i
     return ms;
 }
 
+bool isResultsMatch(const std::vector<cv::Point>& gpuCorners, const std::vector<cv::Point>& cpuCorners, int width, int height){
+    std::vector<bool> gpuMask(width * height, false);
+    std::vector<bool> cpuMask(width * height, false);
+
+    for(const cv::Point& p : gpuCorners){
+      gpuMask[p.y * width + p.x] = true;
+    }
+
+    for(const cv::Point& p : cpuCorners){
+      cpuMask[p.y * width + p.x] = true;
+    }
+
+    int diffs = 0;
+    for (int i = 0; i < width * height; i++){
+      if (gpuMask[i] != cpuMask[i]) diffs++;
+    }
+
+    return diffs == 0;
+}
+
 
 int main(int argc, char** argv) {
     const char* inputPath  = argv[1];
@@ -248,6 +268,8 @@ int main(int argc, char** argv) {
    
     double cpuTime = harrisCPU(input, cpuCorners, width, height, threshold, alpha);
     std::cout << "CPU time: " << cpuTime << " ms" << std::endl;
+
+    std::cout << "CPU == GPU: " << isResultsMatch(gpuCorners, cpuCorners, width, height) << std::endl;
 
     saveImageWithCross(outputPath, input, cpuCorners, width, height);
 
